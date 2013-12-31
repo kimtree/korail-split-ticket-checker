@@ -113,6 +113,7 @@ def get_route(stations, date, train_number, departure, arrival):
                 route.append(stations[departure])
                 route.append(stations[idx])
                 routes.append(route)
+                break
         else:
             first_trip = check_avail_route(stations[departure], stations[idx], date, train_number)
             if first_trip:
@@ -120,6 +121,7 @@ def get_route(stations, date, train_number, departure, arrival):
                 second_trip = check_avail_route(stations[idx], stations[arrival], date, train_number)
                 if second_trip:
                     route = []
+                    route.append(stations[departure])
                     route.append(stations[idx])
                     route.append(stations[arrival])
                     routes.append(route)
@@ -149,7 +151,8 @@ def main():
         results = get_route(stations, date, train_number, departure, arrival)
 
         print ''
-        for result in results:
+        for idx, result in enumerate(results):
+            print u'여정 %d ' % (idx+1),
             for trip in result:
                 print '%s %s ' % (trip['name'], trip['departure_time']),
             print ''

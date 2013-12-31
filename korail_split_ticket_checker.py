@@ -36,8 +36,12 @@ def get_train_routes(date, train_number):
     soup = BeautifulSoup(r.content, 'html')
 
     # To get train type
-    train_type = soup.find("font", { "color" : "#003399" }).text.strip()
-    train_type = train_type[train_type.find('[') + 1 : train_type.find(']')]
+    train_type_data = soup.find("font", { "color" : "#003399" })
+    if train_type_data:
+        train_type = train_type_data.text.strip()
+        train_type = train_type[train_type.find('[') + 1 : train_type.find(']')]
+    else:
+        return None, None
 
     # Looping for each stops
     route_results = soup.find_all("tr", { "bgcolor" : "#FFFFFF" })
@@ -95,22 +99,32 @@ def check_avail_route(departure, arrival, date, train_number):
         r.raise_for_status()
 
 
-def get_route(stations, date, train_number):
+def get_route(stations, date, train_number, departure, arrival):
+    # Routes
+    routes = []
     # Looping stations
-    for idx in range(1,len(stations)):
-        first_trip = check_avail_route(stations[0], stations[-idx], date, train_number)
-        if idx == 1 and first_trip:
-            print '%s %s -> %s %s' % (stations[0]['name'], stations[0]['departure_time'], stations[-idx]['name'], stations[-idx]['departure_time'])
-            return True
-        elif first_trip:
-            second_trip_idx = len(stations) - idx
-            second_trip = check_avail_route(stations[second_trip_idx], stations[-1], date, train_number)
-            if second_trip:
-                print '%s %s -> %s %s' % (stations[0]['name'], stations[0]['departure_time'], stations[-idx]['name'], stations[-idx]['departure_time'])
-                print '%s %s -> %s %s' % (stations[second_trip_idx]['name'], stations[second_trip_idx]['departure_time'], stations[-1]['name'], stations[-1]['departure_time'])
-                return True
+    for idx in range(arrival, departure, -1):
+        first_trip = False
+        # To check whether direct route avail or not
+        if idx == arrival:
+            first_trip = check_avail_route(stations[departure], stations[idx], date, train_number)
+            if first_trip:
+                route = []
+                route.append(stations[departure])
+                route.append(stations[idx])
+                routes.append(route)
+        else:
+            first_trip = check_avail_route(stations[departure], stations[idx], date, train_number)
+            if first_trip:
+                # To check only two routes
+                second_trip = check_avail_route(stations[idx], stations[arrival], date, train_number)
+                if second_trip:
+                    route = []
+                    route.append(stations[idx])
+                    route.append(stations[arrival])
+                    routes.append(route)
 
-    return False
+    return routes
 
 
 def main():
@@ -118,11 +132,31 @@ def main():
     train_number = raw_input('Train No: ')
 
     train_type, stations = get_train_routes(date, train_number)
-    print ''
-    print train_type, train_number
-    result = get_route(stations, date, train_number)
 
-    print u' --> 탑승가능: %s' % result
+    if train_type:
+        print ''
+        print train_type, train_number
+        print ''
+
+        print u'* 운행역 리스트 *'
+        for i, station in enumerate(stations):
+            print i, ':', station['name']
+
+        print ''
+        departure = int(raw_input(u'Departure : '))
+        arrival = int(raw_input(u'Arrival: '))
+
+        results = get_route(stations, date, train_number, departure, arrival)
+
+        print ''
+        for result in results:
+            for trip in result:
+                print '%s %s ' % (trip['name'], trip['departure_time']),
+            print ''
+
+        print u'\n --> 탑승가능: %s' % bool(results)
+    else:
+        print u'존재하지 않는 열차입니다.'
 
 
 if __name__ == '__main__':

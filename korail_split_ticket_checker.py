@@ -41,7 +41,7 @@ def get_train_routes(date, train_number):
         soup = BeautifulSoup(r.content, 'html')
 
         # To get train type
-        train_type_data = soup.find("font", { "class" : "point-00" })
+        train_type_data = soup.find("font")
         if train_type_data:
             train_type = train_type_data.text.strip()
             train_type = train_type[train_type.find('[') + 1 : train_type.find(']')]

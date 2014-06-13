@@ -19,7 +19,7 @@ class TestKorailSplitTickerChecker(unittest.TestCase):
 		train_type, stations = korail_split_ticket_checker.get_train_routes(self.date, self.train_no)
 
 		self.assertEqual(self.train_type, train_type, "Failed to get train type")
-		self.assertEqual(self.stations, len(stations))
+		self.assertEqual(self.stations, len(stations), "Failed to get station list")
 
 	def test_get_train_routes_ktx_sanchon(self):
 		# 2014년 6월 9일 개정 시간표 기준
@@ -30,9 +30,9 @@ class TestKorailSplitTickerChecker(unittest.TestCase):
 		train_type, stations = korail_split_ticket_checker.get_train_routes(self.date, self.train_no)
 
 		self.assertEqual(self.train_type, train_type, "Failed to get train type")
-		self.assertEqual(self.stations, len(stations))
+		self.assertEqual(self.stations, len(stations), "Failed to get station list")
 
-	def test_get_train_routes_ktx_saemaul(self):
+	def test_get_train_routes_itx_saemaul(self):
 		# 2014년 6월 9일 개정 시간표 기준
 		self.train_type = u"ITX-새마을"
 		self.train_no = 1081
@@ -41,9 +41,9 @@ class TestKorailSplitTickerChecker(unittest.TestCase):
 		train_type, stations = korail_split_ticket_checker.get_train_routes(self.date, self.train_no)
 
 		self.assertEqual(self.train_type, train_type, "Failed to get train type")
-		self.assertEqual(self.stations, len(stations))
+		self.assertEqual(self.stations, len(stations), "Failed to get station list")
 
-	def test_get_train_routes_ktx_mugungwha(self):
+	def test_get_train_routes_mugungwha(self):
 		# 2014년 6월 9일 개정 시간표 기준
 		self.train_type = u"무궁화호"
 		self.train_no = 1221
@@ -52,7 +52,7 @@ class TestKorailSplitTickerChecker(unittest.TestCase):
 		train_type, stations = korail_split_ticket_checker.get_train_routes(self.date, self.train_no)
 
 		self.assertEqual(self.train_type, train_type, "Failed to get train type")
-		self.assertEqual(self.stations, len(stations))
+		self.assertEqual(self.stations, len(stations), "Failed to get station list")
 
 
 if __name__ == '__main__':

@@ -7,8 +7,8 @@ except ImportError:
     print 'BeautifulSoup4 and requests Required.'
     sys.exit()
 
-FARE_URL = 'http://www.korail.com/servlets/pr.pr21100.sw_pr21111_i1Svt'
-ROUTE_URL = 'http://www.korail.com/servlets/pr.pr11100.sw_pr11131_i1Svt'
+FARE_URL = 'http://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do'
+ROUTE_URL = 'http://www.letskorail.com/ebizprd/EbizPrdTicketPr11131_i1.do'
 
 DEFAULT_HEADERS = { "Referer" : FARE_URL,
                     "Origin" : "http://www.korail.com",
@@ -30,57 +30,66 @@ def get_train_routes(date, train_number):
 
     # Request for train routes
     params = {'txtRunDt': date, 'txtTrnNo': '%05d' % int(train_number)}
-    r = requests.get(ROUTE_URL, params=params, headers=DEFAULT_HEADERS)
+    r = None
+    try:
+        r = requests.get(ROUTE_URL, params=params, headers=DEFAULT_HEADERS)
+    except:
+        print u'열차 정보를 가져오는데 실패했습니다.'
 
     # Get soup object
-    soup = BeautifulSoup(r.content, 'html')
+    if r:
+        soup = BeautifulSoup(r.content, 'html')
 
-    # To get train type
-    train_type_data = soup.find("font", { "color" : "#003399" })
-    if train_type_data:
-        train_type = train_type_data.text.strip()
-        train_type = train_type[train_type.find('[') + 1 : train_type.find(']')]
+        # To get train type
+        train_type_data = soup.find("font", { "class" : "point-00" })
+        if train_type_data:
+            train_type = train_type_data.text.strip()
+            train_type = train_type[train_type.find('[') + 1 : train_type.find(']')]
+        else:
+            return None, None
+
+        # Looping for each stops
+        route_results = soup.find_all("tr", { "bgcolor" : "#FFFFFF" })
+        for route in route_results:
+            fragments = route.find_all('td')
+            station = {}
+            station['name'] = fragments[0].text.strip()
+            station['arrival_time'] = fragments[1].text.strip()
+            station['departure_time'] = fragments[2].text.strip()
+
+            if not station.get('arrival_time') or len(station.get('arrival_time')) < 5:
+                station['arrival_time'] = station['departure_time']
+            if not station.get('departure_time') or len(station.get('departure_time')) < 5:
+                station['departure_time'] = station['arrival_time']
+
+            stations.append(station)
+
+        return train_type, stations
     else:
         return None, None
-
-    # Looping for each stops
-    route_results = soup.find_all("tr", { "bgcolor" : "#FFFFFF" })
-    for route in route_results:
-        fragments = route.find_all('td')
-        station = {}
-        station['name'] = fragments[0].text.strip()
-        station['arrival_time'] = fragments[1].text.strip()
-        station['departure_time'] = fragments[2].text.strip()
-        
-        if not station.get('arrival_time') or len(station.get('arrival_time')) < 5:
-            station['arrival_time'] = station['departure_time']
-        if not station.get('departure_time') or len(station.get('departure_time')) < 5:
-            station['departure_time'] = station['arrival_time']
-
-        stations.append(station)
-
-    return train_type, stations
 
 
 def check_avail_route(departure, arrival, date, train_number):
     payloads = DEFAULT_PAYLOADS
     payloads['txtGoAbrdDt'] = date
-    payloads['txtGoStart'] = departure['name'].encode('euc-kr')
-    payloads['txtGoEnd'] = arrival['name'].encode('euc-kr')
+    payloads['txtGoStart'] = departure['name'].encode('utf-8')
+    payloads['txtGoEnd'] = arrival['name'].encode('utf-8')
     payloads['txtGoHour'] = departure['departure_time'].replace(':', '') + '00'
 
     # Request for checking availablity
-    r = requests.get(FARE_URL, params=payloads, headers=DEFAULT_HEADERS)
+    r = requests.post(FARE_URL, data=payloads, headers=DEFAULT_HEADERS)
 
     if r.status_code == requests.codes.ok:
         # Get soup object from response
         soup = BeautifulSoup(r.content, 'html')
 
         # Get result table
-        result = soup.find("table", { "class" : "list-view" })
+        result = soup.find("table", { "class" : "tbl_h" })
+
         if result:
             # Get all train infos
             result_line = result.find_all('tr')
+
             for line in result_line:
                 # Get each train
                 fragments = line.find_all('td')
@@ -133,6 +142,9 @@ def main():
     date = raw_input('Input Date (YYYYmmdd): ')
     train_number = raw_input('Train No: ')
 
+    print ''
+    print u'해당 기차편을 검색 중입니다.'
+
     train_type, stations = get_train_routes(date, train_number)
 
     if train_type:
@@ -147,6 +159,9 @@ def main():
         print ''
         departure = int(raw_input(u'Departure : '))
         arrival = int(raw_input(u'Arrival: '))
+
+        print ''
+        print u'운행 가능 여정을 검색 중입니다.'
 
         results = get_route(stations, date, train_number, departure, arrival)
 

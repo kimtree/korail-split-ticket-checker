@@ -10,18 +10,20 @@ except ImportError:
 FARE_URL = 'http://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do'
 ROUTE_URL = 'http://www.letskorail.com/ebizprd/EbizPrdTicketPr11131_i1.do'
 
-DEFAULT_HEADERS = { "Referer" : FARE_URL,
-                    "Origin" : "http://www.korail.com",
-                    "User-Agent" : "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.41 Safari/537.36"
-                  }
-
-DEFAULT_PAYLOADS = { "radJobId" : "1", # 조회 여정 종류 (직통)
-                     "selGoTrain" : "05", # 열차타입 (전체)
-                     "txtSeatAttCd_4" : "15", # 차실/좌석: 할인좌석종별 (기본)
-                     "txtSeatAttCd_3" : "00", # 차실/좌석: 창/내측/1인좌석종별 (기본)
-                     "txtSeatAttCd_2" : "00", # 차실/좌석: 좌석 방향 (기본)
-                     "checkStnNm" : "Y" # 역 이름 검색 옵션 Y
+DEFAULT_HEADERS = {"Referer": FARE_URL,
+                   "Origin": "http://www.korail.com",
+                   "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) Apple" +
+                                 "WebKit/537.36 (KHTML, like Gecko) Chrome/" +
+                                 "32.0.1700.41 Safari/537.36"
                    }
+
+DEFAULT_PAYLOADS = {"radJobId": "1",  # 조회 여정 종류 (직통)
+                    "selGoTrain": "05",  # 열차타입 (전체)
+                    "txtSeatAttCd_4": "15",  # 차실/좌석: 할인좌석종별 (기본)
+                    "txtSeatAttCd_3": "00",  # 차실/좌석: 창/내측/1인좌석종별 (기본)
+                    "txtSeatAttCd_2": "00",  # 차실/좌석: 좌석 방향 (기본)
+                    "checkStnNm": "Y"  # 역 이름 검색 옵션 Y
+                    }
 
 
 def get_train_routes(date, train_number):
@@ -44,12 +46,14 @@ def get_train_routes(date, train_number):
         train_type_data = soup.find("font")
         if train_type_data:
             train_type = train_type_data.text.strip()
-            train_type = train_type[train_type.find('[') + 1 : train_type.find(']')]
+            train_type_start = train_type.find('[') + 1
+            train_type_end = train_type.find(']')
+            train_type = train_type[train_type_start:train_type_end]
         else:
             return None, None
 
         # Looping for each stops
-        route_results = soup.find_all("tr", { "bgcolor" : "#FFFFFF" })
+        route_results = soup.find_all("tr", {"bgcolor": "#FFFFFF"})
         for route in route_results:
             fragments = route.find_all('td')
             station = {}
@@ -57,9 +61,11 @@ def get_train_routes(date, train_number):
             station['arrival_time'] = fragments[1].text.strip()
             station['departure_time'] = fragments[2].text.strip()
 
-            if not station.get('arrival_time') or len(station.get('arrival_time')) < 5:
+            if not station.get('arrival_time') \
+               or len(station.get('arrival_time')) < 5:
                 station['arrival_time'] = station['departure_time']
-            if not station.get('departure_time') or len(station.get('departure_time')) < 5:
+            if not station.get('departure_time') \
+               or len(station.get('departure_time')) < 5:
                 station['departure_time'] = station['arrival_time']
 
             stations.append(station)
@@ -84,7 +90,7 @@ def check_avail_route(departure, arrival, date, train_number):
         soup = BeautifulSoup(r.content, 'html')
 
         # Get result table
-        result = soup.find("table", { "class" : "tbl_h" })
+        result = soup.find("table", {"class": "tbl_h"})
 
         if result:
             # Get all train infos
@@ -116,7 +122,8 @@ def get_route(stations, date, train_number, departure, arrival):
         first_trip = False
         # To check whether direct route avail or not
         if idx == arrival:
-            first_trip = check_avail_route(stations[departure], stations[idx], date, train_number)
+            first_trip = check_avail_route(
+                stations[departure], stations[idx], date, train_number)
             if first_trip:
                 route = []
                 route.append(stations[departure])
@@ -124,10 +131,12 @@ def get_route(stations, date, train_number, departure, arrival):
                 routes.append(route)
                 break
         else:
-            first_trip = check_avail_route(stations[departure], stations[idx], date, train_number)
+            first_trip = check_avail_route(stations[departure], stations[idx],
+                                           date, train_number)
             if first_trip:
                 # To check only two routes
-                second_trip = check_avail_route(stations[idx], stations[arrival], date, train_number)
+                second_trip = check_avail_route(
+                    stations[idx], stations[arrival], date, train_number)
                 if second_trip:
                     route = []
                     route.append(stations[departure])
